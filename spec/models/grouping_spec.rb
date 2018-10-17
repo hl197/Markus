@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe Grouping do
   describe 'associations' do
     it { is_expected.to belong_to(:grouping_queue) }
@@ -471,14 +469,12 @@ describe Grouping do
     context 'of four members' do
       let(:membership) { create(:accepted_student_membership, grouping: @grouping) }
       let(:inviter_membership) { create(:inviter_student_membership, grouping: @grouping) }
-      let(:pending_membership) { create(:student_membership,
-                                        grouping: @grouping,
-                                        membership_status: StudentMembership::STATUSES[:pending])
-      }
-      let(:reject_membership) { create(:student_membership,
-                                       grouping: @grouping,
-                                       membership_status: StudentMembership::STATUSES[:rejected])
-      }
+      let(:pending_membership) do
+        create(:student_membership, grouping: @grouping, membership_status: StudentMembership::STATUSES[:pending])
+      end
+      let(:reject_membership) do
+        create(:student_membership, grouping: @grouping, membership_status: StudentMembership::STATUSES[:rejected])
+      end
       let(:inviter) { inviter_membership.user }
 
       describe '#membership_status' do
@@ -612,6 +608,7 @@ describe Grouping do
 
       # FAILING: missing_file.length = 0
       it 'is able to report the still missing required assignment_files' do
+        @assignment.assignment_files.reload
         missing_files = @grouping.missing_assignment_files
         expect(missing_files.length).to eq(1)
         expect(missing_files).to eq([@file])
@@ -762,7 +759,7 @@ describe Grouping do
         @student_can_invite = create(:student, section: @section)
         @student_cannot_invite = create(:student)
 
-        assignment = create(:assignment, section_groups_only: true)
+        assignment = create(:assignment, group_max: 2, section_groups_only: true, due_date: Time.now + 2.days)
         @grouping = create(:grouping, assignment: assignment)
         create(:inviter_student_membership,
                user: student,
@@ -771,7 +768,6 @@ describe Grouping do
       end
 
       describe '#can_invite?' do
-        # FAILING: @grouping.can_invite?(@student_can_invite) returns false
         it 'returns true for students of same section' do
           expect(@grouping.can_invite?(@student_can_invite)).to be true
         end
@@ -860,7 +856,7 @@ describe Grouping do
           end
 
           it 'shows one grace credition deduction because submission was late' do
-            submit_file_at_time(@assignment, @group, 'test','July 24 2009 9:00AM', 'LateSubmission.java',
+            submit_file_at_time(@assignment, @group, 'test', 'July 24 2009 9:00AM', 'LateSubmission.java',
                                 'Some overtime contents')
 
             # An Instructor or Grader decides to begin grading
@@ -933,7 +929,7 @@ describe Grouping do
           end
 
           it 'shows one grace credit deduction because submission is late' do
-            submit_file_at_time(@assignment, @group, 'test','July 24 2009 9:00AM', 'LateSubmission.java',
+            submit_file_at_time(@assignment, @group, 'test', 'July 24 2009 9:00AM', 'LateSubmission.java',
                                 'Some overtime contents')
 
             # An Instructor or Grader decides to begin grading
@@ -1007,7 +1003,7 @@ describe Grouping do
         end
 
         it 'returns true after due date' do
-          submit_file_at_time(@assignment, @group, 'test','July 28 2009 5:00PM', 'my_file', 'Hello, World!')
+          submit_file_at_time(@assignment, @group, 'test', 'July 28 2009 5:00PM', 'my_file', 'Hello, World!')
           expect(@grouping.past_due_date?).to be true
         end
       end
@@ -1025,13 +1021,13 @@ describe Grouping do
 
         it 'returns false when before section due_date' do
           SectionDueDate.create(section: @section, assignment: @assignment, due_date: Time.parse('July 30 2009 5:00PM'))
-          submit_file_at_time(@assignment, @group, 'test','July 28 2009 1:00PM', 'my_file', 'Hello, World!')
+          submit_file_at_time(@assignment, @group, 'test', 'July 28 2009 1:00PM', 'my_file', 'Hello, World!')
           expect(@grouping.past_due_date?).to be false
         end
 
         it 'returns true when after section due_date' do
           SectionDueDate.create(section: @section, assignment: @assignment, due_date: Time.parse('July 20 2009 5:00PM'))
-          submit_file_at_time(@assignment, @group, 'test','July 28 2009 1:00PM', 'my_file', 'Hello, World!')
+          submit_file_at_time(@assignment, @group, 'test', 'July 28 2009 1:00PM', 'my_file', 'Hello, World!')
           expect(@grouping.past_due_date?).to be true
         end
       end
